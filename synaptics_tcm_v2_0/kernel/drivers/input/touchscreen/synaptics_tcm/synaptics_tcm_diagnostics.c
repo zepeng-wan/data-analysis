@@ -35,6 +35,7 @@
  */
 
 #include "synaptics_tcm_core.h"
+#include <linux/sched/signal.h>
 
 #define SYSFS_DIR_NAME "diagnostics"
 
@@ -415,8 +416,16 @@ static void diag_report(void)
 		state = PING;
 	}
 
+	// if (diag_hcd->pid)
+	// 	send_sig_info(SIGIO, &diag_hcd->sigio, diag_hcd->task);
+
 	if (diag_hcd->pid)
-		send_sig_info(SIGIO, &diag_hcd->sigio, diag_hcd->task);
+	{
+		struct kernel_siginfo info;
+		memset(&info, 0, sizeof(info));
+		info.si_signo = SIGIO;         /* 基本够用，更多字段看你是否需要 */
+		send_sig_info(SIGIO, &info, diag_hcd->task);
+	}
 
 	return;
 }

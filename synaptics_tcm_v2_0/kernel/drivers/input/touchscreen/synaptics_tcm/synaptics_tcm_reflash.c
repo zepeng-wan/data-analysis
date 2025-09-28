@@ -2299,6 +2299,7 @@ static int reflash_do_reflash(void)
 				goto exit;
 			}
 		}
+		fallthrough;
 	case CONFIG_ONLY:
 		if (reflash_hcd->disp_cfg_update) {
 			retval = reflash_update_disp_config(false);

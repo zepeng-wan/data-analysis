@@ -39,6 +39,19 @@
 #include <linux/uaccess.h>
 #include "synaptics_tcm_core.h"
 
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36)
+/* 前向声明：后面会有 static int device_ioctl(...) 的真正定义 */
+static int device_ioctl(struct inode *, struct file *, unsigned int, unsigned long);
+
+/* 新内核的 unlocked_ioctl 包一层旧实现 */
+static long device_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+    return device_ioctl(file->f_inode, file, cmd, arg);
+}
+#endif
+
 #define CHAR_DEVICE_NAME "tcm"
 
 #define CONCURRENT true
@@ -530,7 +543,11 @@ static const struct file_operations device_fops = {
 	.compat_ioctl = device_ioctl,
 #endif
 #else
-	.ioctl = device_ioctl,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36)
+    .unlocked_ioctl = device_unlocked_ioctl,
+#else
+    .ioctl = device_ioctl,
+#endif
 #endif
 	.llseek = device_llseek,
 	.read = device_read,

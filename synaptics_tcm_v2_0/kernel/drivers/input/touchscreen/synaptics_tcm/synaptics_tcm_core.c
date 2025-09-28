@@ -39,6 +39,13 @@
 #include <linux/interrupt.h>
 #include <linux/regulator/consumer.h>
 #include "synaptics_tcm_core.h"
+#include <linux/fb.h>
+
+
+#ifndef __maybe_unused
+#define __maybe_unused __attribute__((unused))
+#endif
+
 
 /* #define RESET_ON_RESUME */
 
@@ -1488,6 +1495,7 @@ retry:
 		case STATUS_CONTINUED_READ:
 			LOGD(tcm_hcd->pdev->dev.parent,
 					"Out-of-sync continued read\n");
+			fallthrough;
 		case STATUS_IDLE:
 		case STATUS_BUSY:
 			tcm_hcd->payload_length = 0;
@@ -3291,7 +3299,8 @@ static void syna_tcm_helper_work(struct work_struct *work)
 }
 
 #if defined(CONFIG_PM) || defined(CONFIG_FB)
-static int syna_tcm_resume(struct device *dev)
+#ifdef CONFIG_PM
+static int __maybe_unused syna_tcm_resume(struct device *dev)
 {
 	int retval;
 	struct syna_tcm_module_handler *mod_handler;
@@ -3389,8 +3398,9 @@ exit:
 
 	return retval;
 }
-
-static int syna_tcm_suspend(struct device *dev)
+#endif
+#ifdef CONFIG_PM
+static int __maybe_unused syna_tcm_suspend(struct device *dev)
 {
 	struct syna_tcm_module_handler *mod_handler;
 	struct syna_tcm_hcd *tcm_hcd = dev_get_drvdata(dev);
@@ -3422,9 +3432,11 @@ static int syna_tcm_suspend(struct device *dev)
 	return 0;
 }
 #endif
+#endif
 
 #ifdef CONFIG_FB
-static int syna_tcm_early_suspend(struct device *dev)
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static int __maybe_unused syna_tcm_early_suspend(struct device *dev)
 {
 	int retval;
 	struct syna_tcm_module_handler *mod_handler;
@@ -3471,7 +3483,7 @@ static int syna_tcm_early_suspend(struct device *dev)
 
 	return 0;
 }
-
+#endif
 static int syna_tcm_fb_notifier_cb(struct notifier_block *nb,
 		unsigned long action, void *data)
 {
@@ -3501,6 +3513,7 @@ static int syna_tcm_fb_notifier_cb(struct notifier_block *nb,
 
 	if (evdata && evdata->data && tcm_hcd) {
 		transition = evdata->data;
+		#ifdef FB_EARLY_EVENT_BLANK
 		if (action == FB_EARLY_EVENT_BLANK &&
 				*transition == FB_BLANK_POWERDOWN)
 			retval = syna_tcm_early_suspend(&tcm_hcd->pdev->dev);
@@ -3521,6 +3534,7 @@ static int syna_tcm_fb_notifier_cb(struct notifier_block *nb,
 				tcm_hcd->fb_ready++;
 #endif
 		}
+		#endif
 	}
 
 	return 0;

@@ -1,0 +1,5 @@
+config BR2_PACKAGE_SYNA_TCM2
+    bool "Synaptics TCM v2 touchscreen (out-of-tree)"
+    help
+      Build Synaptics TouchComm (TCM v2.x) touchscreen driver as an out-of-tree kernel module.
+
