@@ -1,0 +1,232 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ *
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/display/media-bus-format.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include "rk3566.dtsi"
+#include "rk3566-evb.dtsi"
+
+/ {
+	model = "Rockchip RK3566 EVB2 LP4X V10 Board";
+	compatible = "rockchip,rk3566-evb2-lp4x-v10", "rockchip,rk3566";
+/*
+	vcc3v3_pcie: gpio-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-high;
+		gpio = <&gpio0 RK_PC2 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <5000>;
+		vin-supply = <&dc_12v>;
+	};*/
+};
+
+
+
+/*
+ * video_phy0 needs to be enabled
+ * when dsi0 is enabled
+ */
+&vp1 {
+    rockchip,pixel-shift-enable;
+};
+&dsi0 {
+	status = "okay";
+};
+
+&dsi0_in_vp0 {
+	status = "disabled";
+};
+
+&dsi0_in_vp1 {
+	status = "okay";
+};
+
+&dsi0_panel {
+	power-supply = <&vcc3v3_lcd0_n>;
+	reset-gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_LOW>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&lcd0_rst_gpio>;
+//	rotation = <270>; // 设置屏幕旋转为90度
+};
+
+&i2c2 {
+	status = "okay";
+	pinctrl-0 = <&i2c2m1_xfer>;
+
+	pump_device: device@50 {
+        compatible = "myvendor,i2c_pump";
+        status = "okay";
+        reg = <0x18>;
+    };
+};
+
+&spi3 {
+    status = "okay";
+
+    tcm@0 {
+        compatible = "synaptics,tcm-spi";      // 与驱动 of_match 完全一致
+        reg = <0>;                             // CS0
+        spi-max-frequency = <5000000>;
+        synaptics,spi-mode = <0>;              // 0: CPOL=0, CPHA=0；按芯片手册需要可改 1/2/3
+        // 如需通用写法也可：spi-cpol; / spi-cpha;（与上保持一致即可）
+
+        // 中断脚（示例：GPIO4_B1），触发类型“低电平”对应 qcom 的 TRIGGER_LOW
+        interrupt-parent = <&gpio4>;
+        interrupts = <RK_PB4 IRQ_TYPE_LEVEL_LOW>;
+        synaptics,irq-gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_LOW>;
+
+        // 复位脚（示例：GPIO4_A5），低电平有效 
+        synaptics,reset-gpio = <&gpio4 RK_PA5 GPIO_ACTIVE_LOW>;
+        synaptics,reset-on-state = <0>;        // 与样例一致：0 表示拉低为“on”
+        synaptics,reset-active-ms = <20>;
+        synaptics,reset-delay-ms  = <200>;
+
+        // 上电/时序 //
+        synaptics,power-delay-ms = <200>;
+        synaptics,byte-delay-us  = <0>;
+        synaptics,block-delay-us = <0>;
+        synaptics,ubl-max-freq   = <5000000>;
+        synaptics,ubl-byte-delay-us = <20>;
+
+        // 供电（把 &vcc_3v3 / &vcc_1v8 改成你板上的 regulator 节点） //
+        vdd-supply  = <&vcc_3v3>;
+        avdd-supply = <&vcc_1v8>;
+
+        // pinctrl（可选，若你已在 pinctrl 定义好 active/suspend 状态） //
+        // pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
+        // pinctrl-0 = <&ts_active>;
+        // pinctrl-1 = <&ts_suspend>;
+    };
+};/**/
+
+
+&mdio1 {
+	rgmii_phy0: phy@0 {
+		compatible = "ethernet-phy-ieee802.3-c22";
+		reg = <0x0>;
+	};
+};
+
+
+
+/*
+ * power-supply should switche to vcc3v3_lcd1_n
+ * when mipi panel is connected to dsi1.
+
+&gt1x {
+	power-supply = <&vcc3v3_lcd0_n>;
+};
+ */
+&video_phy0 {
+	status = "okay";
+};
+
+
+&pinctrl {
+
+	lcd0 {
+		lcd0_rst_gpio: lcd0-rst-gpio {
+			rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+&rkcif {
+	status = "okay";
+};
+
+&rkcif_mmu {
+	status = "okay";
+};
+
+&rkisp {
+	status = "okay";
+};
+&csi2_dphy1 {
+	status = "disabled";
+
+	/*
+	 * dphy1 only used for split mode,
+	 * can be used  concurrently  with dphy2
+	 * full mode and split mode are mutually exclusive
+	 
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy1_out: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&isp0_in>;
+			};
+		};
+	};*/
+};
+&rkisp_mmu {
+	status = "disabled";
+};
+
+&rkisp_vir0 {
+	status = "disabled";
+/*
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp0_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dphy1_out>;
+		};
+	};*/
+};
+
+&route_dsi0 {
+	status = "okay";
+	connect = <&vp1_out_dsi0>;
+};
+/*
+&sdmmc1 {
+	max-frequency = <150000000>;
+	no-sd;
+	no-mmc;
+	bus-width = <4>;
+	disable-wp;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc1_bus4 &sdmmc1_cmd &sdmmc1_clk>;
+	sd-uhs-sdr104;
+	status = "okay";
+};
+
+&sdio_pwrseq {
+	reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+};
+*/
+&uart1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn>;
+};
+
+&vcc3v3_lcd0_n {
+	gpio = <&gpio0 RK_PC3 GPIO_ACTIVE_HIGH>;
+	enable-active-high;
+};
+
+
