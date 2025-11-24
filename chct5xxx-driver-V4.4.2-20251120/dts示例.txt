@@ -1,0 +1,10 @@
+	smtouch@1{
+		compatible = "chipsemi,chsc_cap_touch";		
+		status = "okay";		
+		reg = <1>;		
+		chipsemi,int-gpio = <&pio 8 13 IRQ_TYPE_LEVEL_LOW>;
+		chipsemi,rst-gpio = <&pio 7 2 GPIO_ACTIVE_HIGH>;				
+		spi-max-frequency = <40000000>;
+		chipsemi,max_x = <1080>; //x分辨率
+		chipsemi,max_y = <2240>; //y分辨率
+	};
